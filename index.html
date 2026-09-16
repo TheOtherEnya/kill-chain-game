@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kill Chain Sparring — Red vs Blue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F6F8;
+    --panel:#FFFFFF;
+    --panel-2:#EDF0F3;
+    --text:#1B232B;
+    --muted:#5B6772;
+    --border:#D8DEE3;
+    --red:#B23A32;
+    --red-soft:#F4DEDB;
+    --blue:#2C6E8E;
+    --blue-soft:#DCEAF0;
+    --green:#2F8F5B;
+    --green-soft:#DCEFE3;
+    --amber:#B8892B;
+    --shadow: 0 1px 2px rgba(20,25,30,0.06);
+    --radius: 10px;
+    --font-head: 'Space Grotesk', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#10151A;
+      --panel:#1A2128;
+      --panel-2:#212A32;
+      --text:#E7EDF1;
+      --muted:#8A98A3;
+      --border:#2B353E;
+      --red:#E2685D;
+      --red-soft:#3A2422;
+      --blue:#5FB0D6;
+      --blue-soft:#1E323C;
+      --green:#5FBF8B;
+      --green-soft:#1C3327;
+      --amber:#D9A94E;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#10151A;
+    --panel:#1A2128;
+    --panel-2:#212A32;
+    --text:#E7EDF1;
+    --muted:#8A98A3;
+    --border:#2B353E;
+    --red:#E2685D;
+    --red-soft:#3A2422;
+    --blue:#5FB0D6;
+    --blue-soft:#1E323C;
+    --green:#5FBF8B;
+    --green-soft:#1C3327;
+    --amber:#D9A94E;
+    --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-head);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{
+    max-width:760px;
+    margin:0 auto;
+    padding:28px 18px 60px;
+  }
+  a{color:var(--blue);}
+  button{font-family:inherit;}
+  ::selection{background:var(--blue-soft);}
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+  :focus-visible{outline:2px solid var(--blue); outline-offset:2px;}
+
+  /* ---------- Header ---------- */
+  .masthead{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:22px;
+    padding-bottom:16px;
+    border-bottom:1px solid var(--border);
+  }
+  .masthead h1{
+    font-size:1.35rem;
+    margin:0;
+    letter-spacing:-0.01em;
+    font-weight:700;
+  }
+  .masthead .tag{
+    font-family:var(--font-mono);
+    font-size:0.72rem;
+    color:var(--muted);
+  }
+
+  /* ---------- Setup screen ---------- */
+  .lede{
+    color:var(--muted);
+    max-width:56ch;
+    margin:0 0 26px;
+    font-size:0.96rem;
+  }
+  .section-label{
+    font-family:var(--font-mono);
+    font-size:0.72rem;
+    color:var(--muted);
+    margin:0 0 10px;
+  }
+  .mode-grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+    margin-bottom:24px;
+  }
+  @media(min-width:560px){ .mode-grid{grid-template-columns:1fr 1fr 1fr;} }
+  .mode-card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:14px 14px;
+    cursor:pointer;
+    text-align:left;
+    color:var(--text);
+    transition:border-color .12s ease;
+  }
+  .mode-card:hover{border-color:var(--muted);}
+  .mode-card.selected{border-color:var(--blue); box-shadow:0 0 0 1px var(--blue);}
+  .mode-card .role-pair{
+    font-family:var(--font-mono);
+    font-size:0.68rem;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .mode-card h3{margin:0 0 4px; font-size:0.98rem;}
+  .mode-card p{margin:0; font-size:0.82rem; color:var(--muted);}
+
+  .diff-row{display:flex; gap:8px; margin-bottom:28px; flex-wrap:wrap;}
+  .pill{
+    font-family:var(--font-mono);
+    font-size:0.76rem;
+    padding:7px 13px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:var(--panel);
+    color:var(--muted);
+    cursor:pointer;
+  }
+  .pill.selected{border-color:var(--amber); color:var(--text); background:var(--panel-2);}
+
+  .toggle-row{
+    display:flex; align-items:center; gap:10px;
+    margin-bottom:28px;
+    font-size:0.85rem;
+    color:var(--muted);
+  }
+  .switch{
+    width:36px; height:20px; border-radius:999px;
+    background:var(--panel-2); border:1px solid var(--border);
+    position:relative; cursor:pointer; flex:none;
+  }
+  .switch .knob{
+    width:14px; height:14px; border-radius:50%;
+    background:var(--muted); position:absolute; top:2px; left:2px;
+    transition:left .15s ease, background .15s ease;
+  }
+  .switch.on{background:var(--blue-soft); border-color:var(--blue);}
+  .switch.on .knob{left:18px; background:var(--blue);}
+
+  .btn{
+    font-family:var(--font-head);
+    font-weight:600;
+    font-size:0.92rem;
+    padding:11px 20px;
+    border-radius:8px;
+    border:1px solid transparent;
+    cursor:pointer;
+  }
+  .btn-primary{background:var(--text); color:var(--bg);}
+  .btn-primary:disabled{opacity:0.4; cursor:not-allowed;}
+  .btn-ghost{background:transparent; border-color:var(--border); color:var(--text);}
+  .btn-row{display:flex; gap:10px; margin-top:8px; flex-wrap:wrap;}
+
+  /* ---------- Kill chain track ---------- */
+  .track{
+    display:flex;
+    align-items:center;
+    margin-bottom:22px;
+    overflow-x:auto;
+    padding-bottom:4px;
+  }
+  .track-node{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    flex:none;
+    width:78px;
+  }
+  .track-node .dot{
+    width:26px; height:26px; border-radius:50%;
+    border:2px solid var(--border);
+    background:var(--panel);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-mono); font-size:0.68rem; color:var(--muted);
+  }
+  .track-node.current .dot{border-color:var(--amber); color:var(--amber); box-shadow:0 0 0 3px var(--panel-2);}
+  .track-node.blocked .dot{border-color:var(--blue); background:var(--blue); color:var(--panel);}
+  .track-node.breached .dot{border-color:var(--red); background:var(--red); color:var(--panel);}
+  .track-node .label{
+    font-size:0.62rem;
+    color:var(--muted);
+    text-align:center;
+    line-height:1.2;
+  }
+  .track-line{
+    height:2px; flex:1 1 20px; background:var(--border); margin-bottom:20px; min-width:12px;
+  }
+
+  /* ---------- Stage panel ---------- */
+  .stage-panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:18px 18px;
+    margin-bottom:18px;
+    box-shadow:var(--shadow);
+  }
+  .stage-eyebrow{
+    font-family:var(--font-mono);
+    font-size:0.7rem;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .stage-panel h2{margin:0 0 8px; font-size:1.15rem;}
+  .stage-panel .brief{color:var(--muted); font-size:0.9rem; margin:0;}
+
+  .role-banner{
+    display:flex; align-items:center; gap:8px;
+    font-family:var(--font-mono);
+    font-size:0.78rem;
+    padding:9px 14px;
+    border-radius:8px;
+    margin-bottom:14px;
+  }
+  .role-banner.red{background:var(--red-soft); color:var(--red);}
+  .role-banner.blue{background:var(--blue-soft); color:var(--blue);}
+
+  /* ---------- Cards ---------- */
+  .card-grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+    margin-bottom:18px;
+  }
+  .pick-card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:13px 14px;
+    text-align:left;
+    cursor:pointer;
+    color:var(--text);
+  }
+  .pick-card:hover{border-color:var(--muted);}
+  .pick-card.selected.red-select{border-color:var(--red); box-shadow:0 0 0 1px var(--red);}
+  .pick-card.selected.blue-select{border-color:var(--blue); box-shadow:0 0 0 1px var(--blue);}
+  .pick-card .row1{display:flex; justify-content:space-between; align-items:baseline; gap:10px;}
+  .pick-card h4{margin:0; font-size:0.95rem;}
+  .pick-card .mid{font-family:var(--font-mono); font-size:0.66rem; color:var(--muted); flex:none;}
+  .pick-card p{margin:6px 0 0; font-size:0.82rem; color:var(--muted);}
+
+  /* ---------- Pass interstitial ---------- */
+  .pass-screen{
+    text-align:center;
+    padding:56px 18px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+  }
+  .pass-screen .big{font-size:1.4rem; font-weight:700; margin:0 0 8px;}
+  .pass-screen p{color:var(--muted); margin:0 0 22px; font-size:0.9rem;}
+
+  /* ---------- Reveal ---------- */
+  .reveal-grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:12px;
+    margin-bottom:16px;
+  }
+  @media(min-width:520px){ .reveal-grid{grid-template-columns:1fr 1fr;} }
+  .reveal-card{
+    border-radius:var(--radius);
+    padding:14px;
+    border:1px solid var(--border);
+  }
+  .reveal-card.red{background:var(--red-soft);}
+  .reveal-card.blue{background:var(--blue-soft);}
+  .reveal-card .kicker{font-family:var(--font-mono); font-size:0.68rem; margin-bottom:6px;}
+  .reveal-card.red .kicker{color:var(--red);}
+  .reveal-card.blue .kicker{color:var(--blue);}
+  .reveal-card h4{margin:0 0 4px; font-size:1rem;}
+  .reveal-card .mid{font-family:var(--font-mono); font-size:0.68rem; color:var(--muted);}
+  .reveal-card p{font-size:0.85rem; margin:8px 0 0; color:var(--text); opacity:0.85;}
+
+  .verdict{
+    padding:14px 16px;
+    border-radius:var(--radius);
+    margin-bottom:14px;
+    font-weight:600;
+  }
+  .verdict.win{background:var(--green-soft); color:var(--green);}
+  .verdict.loss{background:var(--red-soft); color:var(--red);}
+  .verdict .explain{display:block; font-weight:400; font-size:0.85rem; margin-top:6px; color:var(--text); opacity:0.85;}
+
+  /* ---------- End screen ---------- */
+  .end-banner{
+    text-align:center;
+    padding:34px 18px;
+    border-radius:var(--radius);
+    margin-bottom:20px;
+    border:1px solid var(--border);
+  }
+  .end-banner.blue-win{background:var(--blue-soft);}
+  .end-banner.red-win{background:var(--red-soft);}
+  .end-banner h2{margin:0 0 6px; font-size:1.3rem;}
+  .end-banner p{margin:0; color:var(--muted); font-size:0.9rem;}
+
+  /* ---------- Log ---------- */
+  .log{
+    margin-top:26px;
+  }
+  .log h3{font-size:0.85rem; margin:0 0 10px; color:var(--muted); font-weight:600;}
+  .log-entry{
+    display:grid;
+    grid-template-columns:20px 1fr auto;
+    gap:10px;
+    align-items:baseline;
+    padding:9px 0;
+    border-bottom:1px solid var(--border);
+    font-size:0.82rem;
+  }
+  .log-entry:last-child{border-bottom:none;}
+  .log-idx{font-family:var(--font-mono); color:var(--muted); font-size:0.72rem;}
+  .log-main .stage-name{font-weight:600;}
+  .log-main .detail{color:var(--muted); display:block; font-size:0.78rem; margin-top:2px;}
+  .log-result{font-family:var(--font-mono); font-size:0.7rem; padding:3px 9px; border-radius:999px; white-space:nowrap;}
+  .log-result.blocked{background:var(--blue-soft); color:var(--blue);}
+  .log-result.breach{background:var(--red-soft); color:var(--red);}
+
+  .footnote{
+    margin-top:30px;
+    padding-top:16px;
+    border-top:1px solid var(--border);
+    color:var(--muted);
+    font-size:0.76rem;
+    max-width:60ch;
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function(){
+
+  // ---------------- Data: the seven-stage kill chain ----------------
+  var STAGES = [
+    {
+      id:'recon', name:'Reconnaissance', tactic:'TA0043',
+      brief:'The adversary is researching you before making any contact — mapping infrastructure, people, and public information.',
+      attacks:[
+        {id:'recon-scan', name:'Active scanning', mitre:'T1595', desc:'Sweeping IP ranges and ports to map exposed services.'},
+        {id:'recon-phish-info', name:'Phishing for information', mitre:'T1598', desc:'Emailing staff to extract details useful for later stages.'},
+        {id:'recon-osint', name:'Search open websites', mitre:'T1593', desc:'Mining social media, job posts, and public records for intel.'}
+      ],
+      defenses:[
+        {id:'recon-opsec', name:'Limit public exposure', mitre:'M1056', counters:['recon-osint','recon-phish-info'], desc:'Reduce what staff, job posts, and systems reveal publicly.'},
+        {id:'recon-firewall', name:'Filter inbound scanning', mitre:'M1031', counters:['recon-scan'], desc:'Network intrusion prevention blunts scans before they map much.'},
+        {id:'recon-training', name:'Security awareness training', mitre:'M1017', counters:['recon-phish-info'], desc:'Staff learn to recognize information-gathering attempts.'},
+        {id:'recon-av', name:'Endpoint antivirus', mitre:'M1049', counters:[], desc:'Scans files on hosts — nothing has reached a host yet.'}
+      ]
+    },
+    {
+      id:'weap', name:'Weaponization', tactic:'TA0042',
+      brief:'The adversary builds or buys the tools for the job — malware, exploits, and infrastructure — away from your network entirely.',
+      attacks:[
+        {id:'weap-malware', name:'Develop custom malware', mitre:'T1587.001', desc:'Building a payload tailored to the target environment.'},
+        {id:'weap-exploit', name:'Acquire an exploit', mitre:'T1588.005', desc:'Buying or building an exploit for a known vulnerability.'},
+        {id:'weap-infra', name:'Stand up infrastructure', mitre:'T1583', desc:'Renting domains and servers for the coming campaign.'}
+      ],
+      defenses:[
+        {id:'weap-intel', name:'Threat intelligence program', mitre:'M1019', counters:['weap-malware','weap-exploit','weap-infra'], desc:'Track adversary tooling, infrastructure, and campaigns before they ever reach you.'},
+        {id:'weap-patch', name:'Patch management', mitre:'M1051', counters:[], desc:'Removes vulnerabilities on your systems — but nothing here has touched your network yet.'},
+        {id:'weap-av', name:'Endpoint antivirus', mitre:'M1049', counters:[], desc:'Scans files on your endpoints — there is nothing yet to scan.'},
+        {id:'weap-fw', name:'Perimeter firewall', mitre:'M1031', counters:[], desc:'Blocks unwanted traffic into your network — none is being sent yet.'}
+      ]
+    },
+    {
+      id:'delivery', name:'Delivery', tactic:'TA0001',
+      brief:'The weapon is transmitted to the target — an inbox, a browser, or an exposed login page.',
+      attacks:[
+        {id:'del-attach', name:'Phishing attachment', mitre:'T1566.001', desc:'A malicious file sent as an email attachment.'},
+        {id:'del-link', name:'Phishing link', mitre:'T1566.002', desc:'An email link to a credential-harvesting or malware site.'},
+        {id:'del-remote', name:'Exposed remote service', mitre:'T1133', desc:'Logging in through an internet-facing VPN or RDP with no second factor.'}
+      ],
+      defenses:[
+        {id:'del-gateway', name:'Email attachment filtering', mitre:'M1031', counters:['del-attach'], desc:'Strips or sandboxes risky attachment types at the gateway.'},
+        {id:'del-webfilter', name:'Web / URL filtering', mitre:'M1021', counters:['del-link'], desc:'Blocks known-bad and newly registered destinations.'},
+        {id:'del-mfa', name:'Multi-factor authentication', mitre:'M1032', counters:['del-remote'], desc:'A stolen or guessed password alone no longer gets you in.'},
+        {id:'del-badge', name:'Building badge access control', mitre:'—', counters:[], desc:'Secures physical entry — unrelated to an email or an exposed login page.'}
+      ]
+    },
+    {
+      id:'exploit', name:'Exploitation', tactic:'TA0002',
+      brief:'The payload triggers — a vulnerability is used to run the adversary\'s code.',
+      attacks:[
+        {id:'exp-client', name:'Exploit client software', mitre:'T1203', desc:'Triggering a bug in a document viewer or browser.'},
+        {id:'exp-public', name:'Exploit public-facing app', mitre:'T1190', desc:'Attacking an internet-exposed web server or API.'},
+        {id:'exp-script', name:'Malicious script execution', mitre:'T1059', desc:'Running PowerShell or JavaScript to execute attacker code.'}
+      ],
+      defenses:[
+        {id:'exp-patch', name:'Patch management', mitre:'M1051', counters:['exp-client','exp-public'], desc:'Closes the vulnerability the exploit depends on.'},
+        {id:'exp-sandbox', name:'Application isolation & sandboxing', mitre:'M1048', counters:['exp-client'], desc:'Contains what a compromised viewer or browser can reach.'},
+        {id:'exp-exec', name:'Execution prevention (allowlisting)', mitre:'M1038', counters:['exp-script'], desc:'Blocks unsigned or unapproved scripts from running at all.'},
+        {id:'exp-visitor', name:'Visitor sign-in log', mitre:'—', counters:[], desc:'Tracks who enters the building — irrelevant to a remote software exploit.'}
+      ]
+    },
+    {
+      id:'install', name:'Installation', tactic:'TA0003',
+      brief:'The adversary plants a foothold designed to survive a reboot, a password change, or a casual look around.',
+      attacks:[
+        {id:'inst-registry', name:'Registry run-key persistence', mitre:'T1547.001', desc:'A startup entry that relaunches malware on every boot.'},
+        {id:'inst-task', name:'Scheduled task persistence', mitre:'T1053', desc:'A recurring task that keeps access alive.'},
+        {id:'inst-account', name:'Create a new account', mitre:'T1136', desc:'A fresh, attacker-owned credential hiding among real ones.'}
+      ],
+      defenses:[
+        {id:'inst-priv', name:'Privileged account management', mitre:'M1026', counters:['inst-account'], desc:'New and privileged accounts require review, not just creation.'},
+        {id:'inst-reg', name:'Restrict registry permissions', mitre:'M1024', counters:['inst-registry'], desc:'Ordinary users and processes can\'t write startup entries.'},
+        {id:'inst-audit', name:'Audit scheduled tasks & processes', mitre:'M1047', counters:['inst-task'], desc:'Unexpected tasks get flagged instead of blending in.'},
+        {id:'inst-photo', name:'Employee ID photo policy', mitre:'—', counters:[], desc:'A physical-badge control — it has no view into the endpoint at all.'}
+      ]
+    },
+    {
+      id:'c2', name:'Command & Control', tactic:'TA0011',
+      brief:'The implant phones home, giving the adversary a remote-control channel into your environment.',
+      attacks:[
+        {id:'c2-web', name:'Web-traffic C2', mitre:'T1071.001', desc:'Blending in with ordinary HTTPS traffic to a controller.'},
+        {id:'c2-dns', name:'DNS tunneling', mitre:'T1071.004', desc:'Smuggling commands and data inside DNS queries.'},
+        {id:'c2-encrypt', name:'Encrypted C2 channel', mitre:'T1573', desc:'Wrapping the channel to defeat casual packet inspection.'}
+      ],
+      defenses:[
+        {id:'c2-ips', name:'Network intrusion prevention', mitre:'M1031', counters:['c2-web'], desc:'Flags known C2 patterns even inside normal-looking web traffic.'},
+        {id:'c2-dnsfilter', name:'DNS monitoring & filtering', mitre:'M1021', counters:['c2-dns'], desc:'Watches for the odd query volume and structure tunneling produces.'},
+        {id:'c2-tls', name:'TLS inspection at the perimeter', mitre:'M1020', counters:['c2-encrypt'], desc:'Decrypts and inspects egress traffic for anomalies at the edge.'},
+        {id:'c2-av', name:'Endpoint antivirus', mitre:'M1049', counters:[], desc:'Good at known malware files — this is already past that, and looks like ordinary traffic.'}
+      ]
+    },
+    {
+      id:'action', name:'Actions on Objectives', tactic:'TA0010 / TA0040',
+      brief:'The payoff: the adversary steals data, disrupts systems, or holds them for ransom.',
+      attacks:[
+        {id:'act-exfil', name:'Exfiltrate over C2 channel', mitre:'T1041', desc:'Quietly moving stolen data out through the existing channel.'},
+        {id:'act-ransom', name:'Encrypt data for impact', mitre:'T1486', desc:'Ransomware locks files and demands payment.'},
+        {id:'act-collect', name:'Automated data collection', mitre:'T1119', desc:'Sweeping file shares and drives for anything valuable.'}
+      ],
+      defenses:[
+        {id:'act-dlp', name:'Data loss prevention', mitre:'M1057', counters:['act-exfil'], desc:'Flags or blocks sensitive data leaving the network.'},
+        {id:'act-backup', name:'Offline data backups', mitre:'M1053', counters:['act-ransom'], desc:'Encrypted files stop being leverage once clean backups exist.'},
+        {id:'act-access', name:'Least-privilege file access', mitre:'M1022', counters:['act-collect'], desc:'There is far less to sweep up if accounts can\'t reach it.'},
+        {id:'act-guest', name:'Guest Wi-Fi network', mitre:'—', counters:[], desc:'A separate network for visitors — it doesn\'t govern access to production data.'}
+      ]
+    }
+  ];
+
+  var DIFF = {
+    rookie:{label:'Rookie AI', p:0.20},
+    analyst:{label:'Analyst AI', p:0.45},
+    veteran:{label:'Veteran AI', p:0.75}
+  };
+
+  var MODES = [
+    {id:'blue', title:'Defend as Blue Team', pair:'YOU: BLUE  ·  AI: RED', desc:'The AI attacks each stage; you pick the control that stops it.'},
+    {id:'red', title:'Attack as Red Team', pair:'YOU: RED  ·  AI: BLUE', desc:'You choose the technique; an AI defender tries to counter it.'},
+    {id:'hotseat', title:'Two players, one device', pair:'RED  vs  BLUE', desc:'Pass the device between picks. No AI — just the two of you.'}
+  ];
+
+  // ---------------- State ----------------
+  var state = {
+    phase:'setup',            // setup | pick | pass | reveal | end
+    mode:null,
+    difficulty:'analyst',
+    practiceMode:false,
+    stageIndex:0,
+    log:[],                    // {stageName, attack, defense, blocked}
+    pendingAttackId:null,
+    pendingDefenseId:null,
+    whoPicksNow:null,          // 'red' | 'blue' — for hotseat / manual turns
+    endReason:null             // 'blue-win' | 'red-win' | 'practice-complete'
+  };
+
+  function currentStage(){ return STAGES[state.stageIndex]; }
+  function findAttack(stage, id){ for(var i=0;i<stage.attacks.length;i++){ if(stage.attacks[i].id===id) return stage.attacks[i]; } }
+  function findDefense(stage, id){ for(var i=0;i<stage.defenses.length;i++){ if(stage.defenses[i].id===id) return stage.defenses[i]; } }
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+  function aiPickAttack(stage){
+    // Weighted toward attacks with fewer counters at higher difficulty.
+    var p = DIFF[state.difficulty].p;
+    var sorted = stage.attacks.slice().sort(function(a,b){
+      function counterCount(atk){
+        var c=0; for(var i=0;i<stage.defenses.length;i++){ if(stage.defenses[i].counters.indexOf(atk.id)>=0) c++; }
+        return c;
+      }
+      return counterCount(a)-counterCount(b);
+    });
+    if(Math.random() < p) return sorted[0];
+    return pick(stage.attacks);
+  }
+
+  function aiPickDefense(stage, attackId){
+    var p = DIFF[state.difficulty].p;
+    if(Math.random() < p){
+      var good = stage.defenses.filter(function(d){ return d.counters.indexOf(attackId)>=0; });
+      if(good.length) return pick(good);
+    }
+    return pick(stage.defenses);
+  }
+
+  // ---------------- Actions ----------------
+  function selectMode(id){ state.mode = id; render(); }
+  function selectDifficulty(id){ state.difficulty = id; render(); }
+  function togglePractice(){ state.practiceMode = !state.practiceMode; render(); }
+
+  function startGame(){
+    if(!state.mode) return;
+    state.stageIndex = 0;
+    state.log = [];
+    state.pendingAttackId = null;
+    state.pendingDefenseId = null;
+    state.endReason = null;
+    beginStage();
+  }
+
+  function beginStage(){
+    state.pendingAttackId = null;
+    state.pendingDefenseId = null;
+    if(state.mode === 'hotseat'){
+      state.phase = 'pass';
+      state.whoPicksNow = 'red';
+    } else if(state.mode === 'blue'){
+      // AI is red, picks silently; player picks blue defense directly.
+      state.pendingAttackId = aiPickAttack(currentStage()).id;
+      state.phase = 'pick';
+      state.whoPicksNow = 'blue';
+    } else if(state.mode === 'red'){
+      state.phase = 'pick';
+      state.whoPicksNow = 'red';
+    }
+    render();
+  }
+
+  function choosePickCard(id){
+    if(state.whoPicksNow === 'red'){ state.pendingAttackChoice = id; }
+    else { state.pendingDefenseChoice = id; }
+    render();
+  }
+
+  function confirmPick(){
+    var stage = currentStage();
+    if(state.whoPicksNow === 'red'){
+      state.pendingAttackId = state.pendingAttackChoice;
+      state.pendingAttackChoice = null;
+      if(state.mode === 'hotseat'){
+        state.phase = 'pass';
+        state.whoPicksNow = 'blue';
+      } else if(state.mode === 'red'){
+        state.pendingDefenseId = aiPickDefense(stage, state.pendingAttackId).id;
+        resolveRound();
+        return;
+      }
+    } else {
+      state.pendingDefenseId = state.pendingDefenseChoice;
+      state.pendingDefenseChoice = null;
+      resolveRound();
+      return;
+    }
+    render();
+  }
+
+  function passContinue(){
+    // From pass screen, move into the picking screen for whoever is up.
+    state.phase = 'pick';
+    render();
+  }
+
+  function resolveRound(){
+    var stage = currentStage();
+    var attack = findAttack(stage, state.pendingAttackId);
+    var defense = findDefense(stage, state.pendingDefenseId);
+    var blocked = defense.counters.indexOf(attack.id) >= 0;
+    var bestDefense = null;
+    if(!blocked){
+      for(var i=0;i<stage.defenses.length;i++){
+        if(stage.defenses[i].counters.indexOf(attack.id)>=0){ bestDefense = stage.defenses[i]; break; }
+      }
+    }
+    state.log.push({
+      stageName: stage.name,
+      attack: attack, defense: defense,
+      blocked: blocked, bestDefense: bestDefense
+    });
+    state.lastResult = {attack:attack, defense:defense, blocked:blocked, bestDefense:bestDefense, stage:stage};
+    state.phase = 'reveal';
+    render();
+  }
+
+  function nextAfterReveal(){
+    var blocked = state.lastResult.blocked;
+    var isLast = state.stageIndex === STAGES.length - 1;
+
+    if(!state.practiceMode){
+      if(blocked){ state.endReason = 'blue-win'; state.phase = 'end'; render(); return; }
+      if(isLast){ state.endReason = 'red-win'; state.phase = 'end'; render(); return; }
+      state.stageIndex++;
+      beginStage();
+      return;
+    } else {
+      if(isLast){ state.endReason = 'practice-complete'; state.phase = 'end'; render(); return; }
+      state.stageIndex++;
+      beginStage();
+      return;
+    }
+  }
+
+  function restart(){
+    state = {phase:'setup', mode:null, difficulty:state.difficulty, practiceMode:false,
+      stageIndex:0, log:[], pendingAttackId:null, pendingDefenseId:null, whoPicksNow:null, endReason:null};
+    render();
+  }
+
+  // ---------------- Rendering ----------------
+  function esc(s){ return s; }
+
+  function renderTrack(){
+    var html = '<div class="track">';
+    STAGES.forEach(function(s, i){
+      var cls = 'track-node';
+      if(i === state.stageIndex && (state.phase==='pick'||state.phase==='pass'||state.phase==='reveal')) cls += ' current';
+      var entry = state.log[i];
+      if(entry){ cls += entry.blocked ? ' blocked' : ' breached'; }
+      html += '<div class="'+cls+'"><div class="dot">'+(i+1)+'</div><div class="label">'+s.name+'</div></div>';
+      if(i < STAGES.length-1) html += '<div class="track-line"></div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function renderSetup(){
+    var html = '';
+    html += '<p class="lede">A seven-stage cyber kill chain, one exchange per stage. Red picks a technique from real-world attacker tradecraft; Blue picks the control that should stop it. Break the chain once, and the whole attack fails — that\'s the point.</p>';
+    html += '<p class="section-label">choose a mode</p>';
+    html += '<div class="mode-grid">';
+    MODES.forEach(function(m){
+      var sel = state.mode === m.id ? ' selected' : '';
+      html += '<button class="mode-card'+sel+'" onclick="KC.selectMode(\''+m.id+'\')">'+
+        '<div class="role-pair">'+m.pair+'</div><h3>'+m.title+'</h3><p>'+m.desc+'</p></button>';
+    });
+    html += '</div>';
+
+    if(state.mode === 'blue' || state.mode === 'red'){
+      html += '<p class="section-label">AI difficulty</p>';
+      html += '<div class="diff-row">';
+      Object.keys(DIFF).forEach(function(k){
+        var sel = state.difficulty === k ? ' selected' : '';
+        html += '<button class="pill'+sel+'" onclick="KC.selectDifficulty(\''+k+'\')">'+DIFF[k].label+'</button>';
+      });
+      html += '</div>';
+    }
+
+    html += '<div class="toggle-row" onclick="KC.togglePractice()" role="switch" aria-checked="'+state.practiceMode+'" tabindex="0">'+
+      '<div class="switch'+(state.practiceMode?' on':'')+'"><div class="knob"></div></div>'+
+      '<span>Practice mode — play all 7 stages regardless of blocks, instead of stopping at the first break</span></div>';
+
+    html += '<div class="btn-row"><button class="btn btn-primary" '+(state.mode?'':'disabled')+' onclick="KC.startGame()">Start</button></div>';
+    return html;
+  }
+
+  function renderPick(){
+    var stage = currentStage();
+    var html = renderTrack();
+    var isRedTurn = state.whoPicksNow === 'red';
+    var list = isRedTurn ? stage.attacks : stage.defenses;
+    var roleClass = isRedTurn ? 'red' : 'blue';
+    var roleLabel = isRedTurn ? 'Red Team — choose an attack technique' : 'Blue Team — choose a control to deploy';
+    var chosen = isRedTurn ? state.pendingAttackChoice : state.pendingDefenseChoice;
+
+    html += '<div class="stage-panel">';
+    html += '<div class="stage-eyebrow">Stage '+(state.stageIndex+1)+' of '+STAGES.length+' · '+stage.tactic+'</div>';
+    html += '<h2>'+stage.name+'</h2><p class="brief">'+stage.brief+'</p>';
+    html += '</div>';
+
+    html += '<div class="role-banner '+roleClass+'">'+roleLabel+'</div>';
+
+    html += '<div class="card-grid">';
+    list.forEach(function(item){
+      var selCls = (chosen === item.id) ? (' selected '+roleClass+'-select') : '';
+      html += '<button class="pick-card'+selCls+'" onclick="KC.choosePickCard(\''+item.id+'\')">'+
+        '<div class="row1"><h4>'+item.name+'</h4><span class="mid">'+item.mitre+'</span></div>'+
+        '<p>'+item.desc+'</p></button>';
+    });
+    html += '</div>';
+
+    html += '<div class="btn-row"><button class="btn btn-primary" '+(chosen?'':'disabled')+' onclick="KC.confirmPick()">Confirm choice</button></div>';
+    return html;
+  }
+
+  function renderPass(){
+    var html = renderTrack();
+    var who = state.whoPicksNow;
+    var label = who === 'red' ? 'Red Team' : 'Blue Team';
+    var cls = who === 'red' ? 'red' : 'blue';
+    html += '<div class="pass-screen">';
+    html += '<p class="big">Pass the device to '+label+'</p>';
+    html += '<p>The other player should look away until you\'re ready.</p>';
+    html += '<div class="btn-row" style="justify-content:center;"><button class="btn btn-primary" onclick="KC.passContinue()">I\'m '+label+' — show my choices</button></div>';
+    html += '</div>';
+    return html;
+  }
+
+  function renderReveal(){
+    var r = state.lastResult;
+    var html = renderTrack();
+    html += '<div class="reveal-grid">';
+    html += '<div class="reveal-card red"><div class="kicker">RED TEAM ATTACK</div><h4>'+r.attack.name+'</h4><div class="mid">'+r.attack.mitre+'</div><p>'+r.attack.desc+'</p></div>';
+    html += '<div class="reveal-card blue"><div class="kicker">BLUE TEAM DEFENSE</div><h4>'+r.defense.name+'</h4><div class="mid">'+r.defense.mitre+'</div><p>'+r.defense.desc+'</p></div>';
+    html += '</div>';
+
+    if(r.blocked){
+      html += '<div class="verdict win">Blocked — the chain breaks here.<span class="explain">'+r.defense.name+' directly addresses '+r.attack.name.toLowerCase()+'. In practice, this stage of the attack fails and the adversary has to start over.</span></div>';
+    } else {
+      var suggestion = r.bestDefense ? ('The control that would have worked here: '+r.bestDefense.name+' ('+r.bestDefense.mitre+').') : 'This stage is largely outside direct network defenses — intelligence and monitoring matter more here than blocking.';
+      html += '<div class="verdict loss">Breach — the attack proceeds to the next stage.<span class="explain">'+r.defense.name+' doesn\'t address '+r.attack.name.toLowerCase()+'. '+suggestion+'</span></div>';
+    }
+
+    html += '<div class="btn-row"><button class="btn btn-primary" onclick="KC.nextAfterReveal()">Continue</button></div>';
+    html += renderLog();
+    return html;
+  }
+
+  function renderEnd(){
+    var html = '';
+    var blockedCount = state.log.filter(function(e){return e.blocked;}).length;
+    var breachCount = state.log.length - blockedCount;
+
+    if(state.endReason === 'blue-win'){
+      html += '<div class="end-banner blue-win"><h2>Blue Team breaks the chain</h2><p>The attack was stopped at stage '+(state.stageIndex+1)+' of '+STAGES.length+' — '+currentStage().name+'. One solid control was enough to end the campaign.</p></div>';
+    } else if(state.endReason === 'red-win'){
+      html += '<div class="end-banner red-win"><h2>Red Team completes the chain</h2><p>Every stage went unblocked, all the way through to Actions on Objectives. Full compromise.</p></div>';
+    } else {
+      var cls = blockedCount >= breachCount ? 'blue-win' : 'red-win';
+      html += '<div class="end-banner '+cls+'"><h2>Practice run complete</h2><p>'+blockedCount+' of '+STAGES.length+' stages blocked, '+breachCount+' breached.</p></div>';
+    }
+
+    html += renderLog();
+    html += '<div class="btn-row"><button class="btn btn-primary" onclick="KC.restart()">Play again</button></div>';
+    return html;
+  }
+
+  function renderLog(){
+    if(!state.log.length) return '';
+    var html = '<div class="log"><h3>Incident log</h3>';
+    state.log.forEach(function(e, i){
+      html += '<div class="log-entry">'+
+        '<span class="log-idx">'+(i+1)+'</span>'+
+        '<span class="log-main"><span class="stage-name">'+e.stageName+'</span>'+
+        '<span class="detail">'+e.attack.name+' → '+e.defense.name+'</span></span>'+
+        '<span class="log-result '+(e.blocked?'blocked':'breach')+'">'+(e.blocked?'blocked':'breach')+'</span>'+
+        '</div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function render(){
+    var html = '<div class="masthead"><h1>Kill Chain Sparring</h1><span class="tag">red vs blue · mitre att&amp;ck</span></div>';
+    if(state.phase === 'setup') html += renderSetup();
+    else if(state.phase === 'pick') html += renderPick();
+    else if(state.phase === 'pass') html += renderPass();
+    else if(state.phase === 'reveal') html += renderReveal();
+    else if(state.phase === 'end') html += renderEnd();
+
+    html += '<div class="footnote">Techniques and mitigations reference MITRE ATT&amp;CK® for training purposes; stage-to-control mapping is simplified for gameplay and isn\'t exhaustive security guidance.</div>';
+    document.getElementById('app').innerHTML = html;
+  }
+
+  window.KC = {
+    selectMode: selectMode,
+    selectDifficulty: selectDifficulty,
+    togglePractice: togglePractice,
+    startGame: startGame,
+    choosePickCard: choosePickCard,
+    confirmPick: confirmPick,
+    passContinue: passContinue,
+    nextAfterReveal: nextAfterReveal,
+    restart: restart
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>
